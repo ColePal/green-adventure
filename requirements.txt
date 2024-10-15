@@ -5,7 +5,7 @@ pandas
 textblob
 pathlib
 numpy
-sklearn
+scikit-learn
 os
 xgboost
 matplotlib
