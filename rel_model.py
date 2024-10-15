@@ -6,10 +6,8 @@ from textblob import TextBlob
 from pathlib import Path
 import pandas as pd
 import numpy as np
-
 from sklearn.model_selection import train_test_split
 from sklearn.feature_extraction.text import TfidfVectorizer
-
 import os
 from sklearn import metrics
 from textblob import TextBlob
@@ -18,12 +16,7 @@ import xgboost as xgb
 from sklearn.decomposition import LatentDirichletAllocation
 import matplotlib.pyplot as plt
 from time import time
-import pandas as pd
-import numpy as np
 
-import torch
-from transformers import pipeline
-import matplotlib.pyplot as plt
 ROOTPATH = Path(__file__).parent.resolve()
 
 def create_list(string, n):
@@ -51,11 +44,7 @@ class relclf:
         self.numeric_columns = numeric_columns
         self.bert_columns = bert_columns
         self.blob_columns = blob_columns
-        if len(self.bert_columns) > 0:
-            task = "sentiment-analysis"
-            model = "nlptown/bert-base-multilingual-uncased-sentiment"
-            device = torch.device("cpu")
-            self.pipeline = pipeline(task, model=model, device=device)
+        
             
     def transform(self, data):
 
@@ -82,12 +71,7 @@ class relclf:
             init_prediction = init_clf.predict(data_matrix)
             df[f"{text}_prediction"] = init_prediction
 
-        for text in self.bert_columns:
-            text_feature = data[text].apply(lambda x: x[:512]).tolist()
-            results = self.pipeline(text_feature)
-            df[f'{text}_score'] = [result['score'] for result in results]
-            df[f'{text}_label'] = [result['label'] for result in results]
-            df[f'{text}_label'] = df[f'{text}_label'].astype('category')
+        
 
         for category in self.category_columns:
             dummies = pd.get_dummies(data[category], prefix=category).astype(int)
@@ -162,14 +146,6 @@ class relclf:
             
         print("Vectorized and LDA'd")
 
-        for text in self.bert_columns:
-            text_feature = X_train[text].apply(lambda x: x[:512]).tolist()
-            results = self.pipeline(text_feature)
-            df[f'{text}_score'] = [result['score'] for result in results]
-            df[f'{text}_label'] = [result['label'][0] for result in results]
-            df[f'{text}_label'] = df[f'{text}_label'].astype(int)
-            
-        print("BERT finished")
             
         for category in self.category_columns:
             dummies = pd.get_dummies(X_train[category], prefix=category).astype(int)

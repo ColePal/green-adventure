@@ -8,5 +8,3 @@ numpy
 scikit-learn
 xgboost
 matplotlib
-torch
-transformers
