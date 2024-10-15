@@ -1,12 +1,11 @@
 joblib
 shap
-streamlit_shap
+streamlit-shap
 pandas
 textblob
 pathlib
 numpy
 scikit-learn
-os
 xgboost
 matplotlib
 torch
