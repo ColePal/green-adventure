@@ -1,4 +1,1 @@
-wheel
-matplotlib == 3.4.3
-
 joblib
