@@ -1,3 +1,7 @@
+streamlit
+transformers
+torch  # Include this if you encounter issues related to model loading
+nltk
 joblib
 shap
 streamlit-shap
