@@ -3,7 +3,7 @@ import time
 import joblib
 from rel_model import relclf
 from pathlib import Path
-import torch
+
 import pandas as pd
 import shap
 from streamlit_shap import st_shap

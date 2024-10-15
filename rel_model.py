@@ -39,12 +39,11 @@ class relclf:
         return 'Accuracy', metrics.accuracy_score(targets, classifications)
     
     def __init__(self,
-                 text_columns=["publication","title","authors","affiliations","abstract"],
+                 text_columns=["abstract"],
                  category_columns=[],
                  numeric_columns=[],
                  bert_columns=[],
                  blob_columns=[],
-                 test=False,
                  name="default"):
         self.name=name
         self.text_columns = text_columns
@@ -57,15 +56,6 @@ class relclf:
             model = "nlptown/bert-base-multilingual-uncased-sentiment"
             device = torch.device("cpu")
             self.pipeline = pipeline(task, model=model, device=device)
-        
-        if test:
-            self.n_components = 5
-            self.max_iter = 10
-            self.max_features = 2
-        else:
-            self.n_components = 10
-            self.max_iter = 100
-            self.max_features = 5000
             
     def transform(self, data):
 
@@ -73,8 +63,6 @@ class relclf:
         df = pd.DataFrame({"index":range(0,len(data))})
         
         for text in self.blob_columns:
-            #print(data)
-            #print(data[text])
             blobs = [TextBlob(str(x)) for x in data[text] ]
             df[f'{text}_neg_sentiment'] = [x.sentiment[0] for x in blobs]
             df[f'{text}_pos_sentiment'] = [x.sentiment[1] for x in blobs]
@@ -126,12 +114,17 @@ class relclf:
             pos = end + 1  # +1 for the space
         return {"input_ids": input_ids, "offset_mapping": offset_ranges}
     
-    def fit(self, X_train, y_train):
+    def fit(self, 
+    X_train, 
+    y_train, 
+    vect_params={"stop_words":'english', "max_features":5000, "ngram_range":(1,3),"max_df":0.85,"lowercase":True,"min_df":0.0001},
+    lda_params={"n_components":10,"random_state":0,"max_iter":100}):
         df = pd.DataFrame({"index":range(0,len(X_train))})
+        self.n_components = lda_params["n_components"]
         self.transformers = {}
         self.init_clfs = {}
         
-        vect = TfidfVectorizer(stop_words='english', max_features=self.max_features, ngram_range = (1,3),max_df=0.85,lowercase=True,min_df=0.0001)
+        vect = TfidfVectorizer(stop_words=vect_params["stop_words"], max_features=vect_params["max_features"], ngram_range=vect_params["ngram_range"],max_df=vect_params["max_df"],lowercase=vect_params["lowercase"],min_df=vect_params["min_df"])
         params = {}
         
         for text in self.blob_columns:
@@ -144,7 +137,7 @@ class relclf:
         
         for text in self.text_columns:
             train_dtm = vect.fit_transform(X_train[text])
-            lda = LatentDirichletAllocation(n_components=self.n_components, random_state=0,max_iter=self.max_iter)
+            lda = LatentDirichletAllocation(n_components=lda_params["n_components"], random_state=lda_params["random_state"],max_iter=lda_params["max_iter"])
             lda_features = lda.fit_transform(train_dtm)
             
             try:
@@ -159,6 +152,7 @@ class relclf:
                     joblib.dump(lda, f"models/{self.name}/{text}_lda.pkl")
 
             df = pd.concat([df, pd.DataFrame(lda_features, columns=create_list(f"{text}_lda", self.n_components))],axis=1)
+
             joblib.dump(vect, f"models/{self.name}/{text}_transformer.pkl")
             train_matrix = DMatrix(train_dtm, label= y_train)
             init_clf = xgb.train({}, dtrain = train_matrix, num_boost_round=100)
@@ -195,6 +189,8 @@ class relclf:
         
         clf = xgb.train(params, dtrain= train_matrix,num_boost_round=100)
         
+
+
         print("Blind Pruning...")
         
         while (True):
@@ -202,9 +198,21 @@ class relclf:
             import_dict = clf.get_score(importance_type='weight')
 
             total_value = np.sum(list(import_dict.values()))
-            filtered_dict = {k: v for k, v in import_dict.items() if v / total_value > 0.05}
+            sorted_dict = dict(sorted(import_dict.items(), key=lambda item: item[1], reverse=True))
+
+            smallest_value = list(sorted_dict.values())[-1]
+
+            print(f"smallest {smallest_value}")
+            print("import")
+            print(import_dict.keys())
+
+            filtered_dict = {k: v for k, v in import_dict.items() if (v > smallest_value or smallest_value/total_value >= 0.05) }
+            print("filtered")
+            print(filtered_dict.keys())
             
             features = list(filtered_dict.keys())
+
+            print("snip")
             
             if (import_dict == filtered_dict):
                 self.features=features
@@ -215,8 +223,6 @@ class relclf:
 
             train_matrix = DMatrix(df[features], label=y_train, enable_categorical=False)
             clf = xgb.train(params, dtrain= train_matrix,num_boost_round=100)
-        
-        
 
     def predict(self, data):
         
@@ -295,3 +301,6 @@ class relclf:
                startangle=90)
         plt.title("WARNING: PIE CHART FOR ENTERTAINMENT PURPOSES ONLY")
         return plt
+
+    def save(self):
+        joblib.dump(self, f"models/{self.name}/{self.name}.pkl")

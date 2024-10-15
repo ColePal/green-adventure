@@ -1,1 +1,13 @@
 joblib
+shap
+streamlit_shap
+pandas
+textblob
+pathlib
+numpy
+sklearn
+os
+xgboost
+matplotlib
+torch
+transformers
