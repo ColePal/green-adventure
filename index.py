@@ -22,6 +22,9 @@ pages = {
     "GoEmotions": [  # Add new page for GoEmotions
         st.Page("go_emotions.py", title="GoEmotions Model"),
     ],
+    "Clustering": {
+        st.Page("lyme_clusters.py", title="Clustering" )
+    }
     
 }
 pg = st.navigation(pages)

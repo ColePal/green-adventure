@@ -15,7 +15,8 @@ def predict(params, phrase):
     st.session_state.text_to_classify = phrase
     with params["output_area"]:
         with st.spinner("Classifying your message..."):
-            prediction = params["model"].predict(pd.DataFrame({"abstract":phrase}, index=range(0,1)))
+            
+                prediction = params["model"].predict(pd.DataFrame({"abstract":phrase}, index=range(0,1)))
         if prediction > 0.5:
             st.header(params["declaration"]["true"])
         else:
@@ -24,14 +25,17 @@ def predict(params, phrase):
         #st.header(f'Your message is {"relevant" if prediction > 0.5 else "not relevant"} to the debate around lyme disease!')
         st.caption(f"This model achieves an f1 score of {params["scores"]["f1"]} and an accuracy score of {params["scores"]["accuracy"]} under test conditions")
     with params["chart_area"]:
-        with st.spinner("Trying to figure out why..."):
-            st_shap(params["model"].explain_abstract(pd.DataFrame({"abstract":phrase}, index=[0])), height=200)
-        with st.spinner("Stalling for time..."):
-            time.sleep(5)  
-            st_shap(params["model"].waterfall(pd.DataFrame({"abstract":phrase}, index=range(0,1))))
-        with st.spinner("Spinning up a circular graph..."):
-            time.sleep(5)
-            st.pyplot(params["model"].feature_importance())
+        try:
+            with st.spinner("Trying to figure out why..."):
+                st_shap(params["model"].explain_abstract(pd.DataFrame({"abstract":phrase}, index=[0])), height=200)
+            with st.spinner("Stalling for time..."):
+                time.sleep(5)  
+                st_shap(params["model"].waterfall(pd.DataFrame({"abstract":phrase}, index=range(0,1))))
+            with st.spinner("Spinning up a circular graph..."):
+                time.sleep(5)
+                st.pyplot(params["model"].feature_importance())
+        except:
+            st.warning("OOPS, it broke. Try typing a longer phrase")
 
 #def model_layout(model, sample_dict, output_area, chart_area, scores):
 def model_layout(params):
